@@ -1,102 +1,86 @@
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local _1 = game:GetService("Players")
+local _2 = _1.LocalPlayer
+local _3 = false
 
--- Variable de estado del ESP
-local espEnabled = false
+local _4 = Instance.new("ScreenGui")
+_4.Name = "\0"
+_4.ResetOnSpawn = false
+_4.Parent = _2:WaitForChild("PlayerGui")
 
--- 1. Crear la Interfaz (ScreenGui)
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ESPGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+local _5 = Instance.new("Frame")
+_5.Size = UDim2.new(0, 160, 0, 50)
+_5.Position = UDim2.new(0.5, -80, 0, 10)
+_5.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+_5.BorderSizePixel = 0
+_5.Parent = _4
 
--- 2. Crear el Recuadro Contenedor (Arriba en el centro)
-local topContainer = Instance.new("Frame")
-topContainer.Name = "TopContainer"
-topContainer.Size = UDim2.new(0, 160, 0, 50)
-topContainer.Position = UDim2.new(0.5, -80, 0, 10) -- Centrado arriba
-topContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-topContainer.BorderSizePixel = 0
-topContainer.Parent = screenGui
+local _6 = Instance.new("UICorner")
+_6.CornerRadius = UDim.new(0, 8)
+_6.Parent = _5
 
--- Bordes redondeados para el recuadro
-local containerCorner = Instance.new("UICorner")
-containerCorner.CornerRadius = UDim.new(0, 8)
-containerCorner.Parent = topContainer
+local _7 = Instance.new("TextButton")
+_7.Size = UDim2.new(0, 140, 0, 34)
+_7.Position = UDim2.new(0, 10, 0, 8)
+_7.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+_7.TextColor3 = Color3.fromRGB(255, 255, 255)
+_7.TextSize = 14
+_7.Font = Enum.Font.SourceSansBold
+_7.Text = "ESP: OFF"
+_7.Parent = _5
 
--- 3. Crear el Botón Verde Chico dentro del recuadro
-local toggleButton = Instance.new("TextButton")
-toggleButton.Name = "ESPToggleButton"
-toggleButton.Size = UDim2.new(0, 140, 0, 34)
-toggleButton.Position = UDim2.new(0, 10, 0, 8)
-toggleButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) -- Color verde
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.TextSize = 14
-toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.Text = "ESP: OFF"
-toggleButton.Parent = topContainer
+local _8 = Instance.new("UICorner")
+_8.CornerRadius = UDim.new(0, 6)
+_8.Parent = _7
 
--- Bordes redondeados para el botón
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 6)
-buttonCorner.Parent = toggleButton
-
--- 4. Funciones para aplicar y quitar el ESP (Highlight)
-local function applyESP(character)
-    if character and not character:FindFirstChild("ESPHighlight") then
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "ESPHighlight"
-        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.FillTransparency = 0.5
-        highlight.OutlineTransparency = 0
-        highlight.Adornee = character
-        highlight.Parent = character
+local function _9(_a)
+    if _a and not _a:FindFirstChild("\1") then
+        local _b = Instance.new("Highlight")
+        _b.Name = "\1"
+        _b.FillColor = Color3.fromRGB(255, 0, 0)
+        _b.OutlineColor = Color3.fromRGB(255, 255, 255)
+        _b.FillTransparency = 0.5
+        _b.OutlineTransparency = 0
+        _b.Adornee = _a
+        _b.Parent = _a
     end
 end
 
-local function removeESP(character)
-    if character then
-        local highlight = character:FindFirstChild("ESPHighlight")
-        if highlight then
-            highlight:Destroy()
-        end
+local function _c(_a)
+    if _a then
+        local _b = _a:FindFirstChild("\1")
+        if _b then _b:Destroy() end
     end
 end
 
-local function updateESP()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            if espEnabled then
-                applyESP(player.Character)
+local function _d()
+    for _, _e in ipairs(_1:GetPlayers()) do
+        if _e ~= _2 and _e.Character then
+            if _3 then
+                _9(_e.Character)
             else
-                removeESP(player.Character)
+                _c(_e.Character)
             end
         end
     end
 end
 
--- 5. Manejar nuevos jugadores
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(character)
-        if espEnabled and player ~= LocalPlayer then
-            character:WaitForChild("HumanoidRootPart")
-            applyESP(character)
+_1.PlayerAdded:Connect(function(_e)
+    _e.CharacterAdded:Connect(function(_a)
+        if _3 and _e ~= _2 then
+            _a:WaitForChild("HumanoidRootPart")
+            _9(_a)
         end
     end)
 end)
 
--- 6. Evento de Clic en el Botón Verde
-toggleButton.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    
-    if espEnabled then
-        toggleButton.Text = "ESP: ON"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(39, 174, 96) -- Verde más oscuro al activar
+_7.MouseButton1Click:Connect(function()
+    _3 = not _3
+    if _3 then
+        _7.Text = "ESP: ON"
+        _7.BackgroundColor3 = Color3.fromRGB(39, 174, 96)
     else
-        toggleButton.Text = "ESP: OFF"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) -- Verde claro por defecto
+        _7.Text = "ESP: OFF"
+        _7.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
     end
-    
-    updateESP()
+    _d()
 end)
