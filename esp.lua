@@ -1,34 +1,53 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Variable de control
+-- Variable de estado del ESP
 local espEnabled = false
 
--- Crear la Interfaz
+-- 1. Crear la Interfaz (ScreenGui)
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ESPGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Crear el Botón
+-- 2. Crear el Recuadro Contenedor (Arriba en el centro)
+local topContainer = Instance.new("Frame")
+topContainer.Name = "TopContainer"
+topContainer.Size = UDim2.new(0, 160, 0, 50)
+topContainer.Position = UDim2.new(0.5, -80, 0, 10) -- Centrado arriba
+topContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+topContainer.BorderSizePixel = 0
+topContainer.Parent = screenGui
+
+-- Bordes redondeados para el recuadro
+local containerCorner = Instance.new("UICorner")
+containerCorner.CornerRadius = UDim.new(0, 8)
+containerCorner.Parent = topContainer
+
+-- 3. Crear el Botón Verde Chico dentro del recuadro
 local toggleButton = Instance.new("TextButton")
-toggleButton.Name = "ESPButton"
-toggleButton.Size = UDim2.new(0, 150, 0, 50)
-toggleButton.Position = UDim2.new(0.05, 0, 0.4, 0)
-toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Rojo (Desactivado)
+toggleButton.Name = "ESPToggleButton"
+toggleButton.Size = UDim2.new(0, 140, 0, 34)
+toggleButton.Position = UDim2.new(0, 10, 0, 8)
+toggleButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) -- Color verde
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.TextSize = 18
+toggleButton.TextSize = 14
 toggleButton.Font = Enum.Font.SourceSansBold
 toggleButton.Text = "ESP: OFF"
-toggleButton.Parent = screenGui
+toggleButton.Parent = topContainer
 
--- Función para agregar Highlight a un personaje
+-- Bordes redondeados para el botón
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 6)
+buttonCorner.Parent = toggleButton
+
+-- 4. Funciones para aplicar y quitar el ESP (Highlight)
 local function applyESP(character)
     if character and not character:FindFirstChild("ESPHighlight") then
         local highlight = Instance.new("Highlight")
         highlight.Name = "ESPHighlight"
-        highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Color interior
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- Color del borde
+        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
         highlight.FillTransparency = 0.5
         highlight.OutlineTransparency = 0
         highlight.Adornee = character
@@ -36,7 +55,6 @@ local function applyESP(character)
     end
 end
 
--- Función para remover Highlight de un personaje
 local function removeESP(character)
     if character then
         local highlight = character:FindFirstChild("ESPHighlight")
@@ -46,7 +64,6 @@ local function removeESP(character)
     end
 end
 
--- Actualizar el estado de todos los jugadores
 local function updateESP()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
@@ -59,7 +76,7 @@ local function updateESP()
     end
 end
 
--- Manejar eventos de aparición de jugadores
+-- 5. Manejar nuevos jugadores
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
         if espEnabled and player ~= LocalPlayer then
@@ -69,16 +86,16 @@ Players.PlayerAdded:Connect(function(player)
     end)
 end)
 
--- Evento de clic en el botón
+-- 6. Evento de Clic en el Botón Verde
 toggleButton.MouseButton1Click:Connect(function()
     espEnabled = not espEnabled
     
     if espEnabled then
         toggleButton.Text = "ESP: ON"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- Verde (Activado)
+        toggleButton.BackgroundColor3 = Color3.fromRGB(39, 174, 96) -- Verde más oscuro al activar
     else
         toggleButton.Text = "ESP: OFF"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Rojo (Desactivado)
+        toggleButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) -- Verde claro por defecto
     end
     
     updateESP()
