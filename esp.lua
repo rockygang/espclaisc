@@ -2,31 +2,38 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Configuración de colores
-local ENEMY_COLOR = Color3.fromRGB(255, 50, 50) -- Rojo para los enemigos
+local ENEMY_COLOR = Color3.fromRGB(255, 50, 50)   -- Rojo para enemigos
+local ALLY_COLOR = Color3.fromRGB(50, 255, 50)    -- Verde para aliados (opcional)
 
-local function createESP(character)
-	-- Esperar a que el personaje tenga RootPart y Humanoid
+local function createESP(player, character)
+	if player == LocalPlayer then return end
+
 	local rootPart = character:WaitForChild("HumanoidRootPart", 5)
 	local humanoid = character:WaitForChild("Humanoid", 5)
 	local head = character:WaitForChild("Head", 5)
 	
 	if not rootPart or not humanoid or not head then return end
-
-	-- Evitar duplicados si ya tiene ESP
 	if character:FindFirstChild("HighlightESP") then return end
 
-	-- 1. Crear el Highlight (resalta el cuerpo a través de las paredes)
+	-- Comprobar si son del mismo equipo (si tu juego usa Teams)
+	local function updateTeamColor()
+		if player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
+			return false -- Es aliado, puedes decidir no mostrarlo o pintarlo diferente
+		end
+		return true -- Es enemigo
+	end
+
+	-- Highlight (Silueta)
 	local highlight = Instance.new("Highlight")
 	highlight.Name = "HighlightESP"
 	highlight.Adornee = character
 	highlight.FillColor = ENEMY_COLOR
-	highlight.FillTransparency = 0.5
+	highlight.FillTransparency = 0.6 -- Más transparente para que sea sutil
 	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-	highlight.OutlineTransparency = 0
+	highlight.OutlineTransparency = 0.5
 	highlight.Parent = character
 
-	-- 2. Crear BillboardGui para mostrar el Nombre y Distancia
+	-- BillboardGui (Texto)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "InfoESP"
 	billboard.Adornee = head
@@ -39,12 +46,12 @@ local function createESP(character)
 	textLabel.Size = UDim2.new(1, 0, 1, 0)
 	textLabel.BackgroundTransparency = 1
 	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	textLabel.TextStrokeTransparency = 0 -- Borde negro para que se lea bien
-	textLabel.TextSize = 14
+	textLabel.TextStrokeTransparency = 0
+	textLabel.TextSize = 13
 	textLabel.Font = Enum.Font.SourceSansBold
 	textLabel.Parent = billboard
 
-	-- Actualizar la distancia en tiempo real
+	-- Bucle de actualización
 	local connection
 	connection = RunService.RenderStepped:Connect(function()
 		if not character or not character.Parent or humanoid.Health <= 0 then
@@ -54,31 +61,36 @@ local function createESP(character)
 			return
 		end
 
+		-- Opcional: Ocultar si están muy lejos para mejorar rendimiento
 		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
 			local distance = (LocalPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude
-			textLabel.Text = string.format("%s\n[%.0fm]", character.Name, distance)
+			
+			if distance > 300 then -- Si está a más de 300 studs, se oculta para no saturar la pantalla
+				billboard.Enabled = false
+				highlight.Enabled = false
+			else
+				billboard.Enabled = true
+				highlight.Enabled = true
+				textLabel.Text = string.format("%s\n[%.0fm]", player.Name, distance)
+			end
 		end
 	end)
 end
 
--- Función para manejar jugadores que ya están en el juego
-local function onPlayerAdded(player)
-	if player == LocalPlayer then return end
-
-	player.CharacterAdded:Connect(function(character)
-		createESP(character)
+-- Inicialización para jugadores actuales y futuros
+for _, player in ipairs(Players:GetPlayers()) do
+	player.CharacterAdded:Connect(function(char)
+		createESP(player, char)
 	end)
-
 	if player.Character then
 		task.spawn(function()
-			createESP(player.Character)
+			createESP(player, player.Character)
 		end)
 	end
 end
 
--- Conectar a todos los jugadores actuales y futuros
-for _, player in ipairs(Players:GetPlayers()) do
-	onPlayerAdded(player)
-end
-
-Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		createESP(player, char)
+	end)
+end)
