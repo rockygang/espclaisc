@@ -1,132 +1,85 @@
--- =================================================================
--- SISTEMA ESP OFUSCADO Y OPTIMIZADO
--- Ubicación: StarterPlayer -> StarterPlayerScripts -> LocalScript
--- =================================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Tecla para Activar / Desactivar el ESP
-local TOGGLE_KEY = Enum.KeyCode.E 
-local ESP_ENABLED = true
+-- Variable de control
+local espEnabled = false
 
--- Tabla de resolución de nombres mediante codificación de bytes
-local _0xMAP = {
-	[1] = game:GetService(string.char(80, 108, 97, 121, 101, 114, 115)),            -- Players
-	[2] = game:GetService(string.char(82, 117, 110, 83, 101, 114, 118, 105, 99, 101)),-- RunService
-	[3] = game:GetService(string.char(85, 115, 101, 114, 73, 110, 112, 117, 116, 83, 101, 114, 118, 105, 99, 101)), -- UserInputService
-	[4] = string.char(72, 117, 109, 97, 110, 111, 105, 100, 82, 111, 111, 116, 80, 97, 114, 116), -- HumanoidRootPart
-	[5] = string.char(72, 117, 109, 97, 110, 111, 105, 100),                          -- Humanoid
-	[6] = string.char(72, 101, 97, 100),                                             -- Head
-	[7] = string.char(72, 105, 103, 104, 108, 105, 103, 104, 116),                    -- Highlight
-	[8] = string.char(66, 105, 108, 108, 98, 111, 97, 114, 100, 71, 117, 105),        -- BillboardGui
-	[9] = string.char(84, 101, 120, 116, 76, 97, 98, 101, 108)                         -- TextLabel
-}
+-- Crear la Interfaz
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ESPGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-local _P = _0xMAP[1]
-local _R = _0xMAP[2]
-local _UIS = _0xMAP[3]
-local _LP = _P.LocalPlayer
+-- Crear el Botón
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ESPButton"
+toggleButton.Size = UDim2.new(0, 150, 0, 50)
+toggleButton.Position = UDim2.new(0.05, 0, 0.4, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Rojo (Desactivado)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 18
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.Text = "ESP: OFF"
+toggleButton.Parent = screenGui
 
--- Bucle principal para la creación del ESP por jugador
-local function _0xCreateESP(_p, _c)
-	if _p == _LP then return end
-
-	local _r = _c:WaitForChild(_0xMAP[4], 5)
-	local _h = _c:WaitForChild(_0xMAP[5], 5)
-	local _d = _c:WaitForChild(_0xMAP[6], 5)
-	
-	if not _r or not _h or not _d or _c:FindFirstChild("HL_X") then return end
-
-	-- Highlight (Silueta a través de paredes)
-	local _hl = Instance.new(_0xMAP[7])
-	_hl.Name = "HL_X"
-	_hl.Adornee = _c
-	_hl.FillColor = Color3.fromRGB(255, 45, 45)
-	_hl.FillTransparency = 0.55
-	_hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-	_hl.OutlineTransparency = 0
-	_hl.Parent = _c
-
-	-- BillboardGui (Texto de Nombre y Distancia)
-	local _bg = Instance.new(_0xMAP[8])
-	_bg.Name = "BG_X"
-	_bg.Adornee = _d
-	_bg.Size = UDim2.new(0, 100, 0, 40)
-	_bg.StudsOffset = Vector3.new(0, 2, 0)
-	_bg.AlwaysOnTop = true
-	_bg.Parent = _c
-
-	local _tl = Instance.new(_0xMAP[9])
-	_tl.Size = UDim2.new(1, 0, 1, 0)
-	_tl.BackgroundTransparency = 1
-	_tl.TextColor3 = Color3.fromRGB(255, 255, 255)
-	_tl.TextStrokeTransparency = 0
-	_tl.TextSize = 13
-	_tl.Font = Enum.Font.SourceSansBold
-	_tl.Parent = _bg
-
-	-- RenderStepped: Actualización en vivo
-	local _conn
-	_conn = _R.RenderStepped:Connect(function()
-		-- Limpieza automática si el objetivo muere o desaparece
-		if not _c or not _c.Parent or _h.Health <= 0 then
-			_bg:Destroy()
-			_hl:Destroy()
-			_conn:Disconnect()
-			return
-		end
-
-		-- Verificar si el ESP global está activado con la tecla
-		if not ESP_ENABLED then
-			_bg.Enabled = false
-			_hl.Enabled = false
-			return
-		end
-
-		-- Comprobación de Equipos (Filtro Anti-Aliados)
-		if _p.Team and _LP.Team and _p.Team == _LP.Team then
-			_bg.Enabled = false
-			_hl.Enabled = false
-			return
-		end
-
-		-- Comprobación de Distancia
-		if _LP.Character and _LP.Character:FindFirstChild(_0xMAP[4]) then
-			local _dist = (_LP.Character[_0xMAP[4]].Position - _r.Position).Magnitude
-			
-			if _dist > 350 then
-				_bg.Enabled = false
-				_hl.Enabled = false
-			else
-				_bg.Enabled = true
-				_hl.Enabled = true
-				_tl.Text = string.format("%s\n[%.0fm]", _p.Name, _dist)
-			end
-		end
-	end)
+-- Función para agregar Highlight a un personaje
+local function applyESP(character)
+    if character and not character:FindFirstChild("ESPHighlight") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ESPHighlight"
+        highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Color interior
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- Color del borde
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = character
+        highlight.Parent = character
+    end
 end
 
--- Inicialización para jugadores
-local function _0xInitPlayer(_player)
-	_player.CharacterAdded:Connect(function(_char)
-		_0xCreateESP(_player, _char)
-	end)
-	if _player.Character then
-		task.spawn(function()
-			_0xCreateESP(_player, _player.Character)
-		end)
-	end
+-- Función para remover Highlight de un personaje
+local function removeESP(character)
+    if character then
+        local highlight = character:FindFirstChild("ESPHighlight")
+        if highlight then
+            highlight:Destroy()
+        end
+    end
 end
 
--- Asignación a jugadores actuales y futuros
-for _, _v in ipairs(_P:GetPlayers()) do
-	_0xInitPlayer(_v)
+-- Actualizar el estado de todos los jugadores
+local function updateESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            if espEnabled then
+                applyESP(player.Character)
+            else
+                removeESP(player.Character)
+            end
+        end
+    end
 end
 
-_P.PlayerAdded:Connect(_0xInitPlayer)
+-- Manejar eventos de aparición de jugadores
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        if espEnabled and player ~= LocalPlayer then
+            character:WaitForChild("HumanoidRootPart")
+            applyESP(character)
+        end
+    end)
+end)
 
--- Atajo de Tecla para Activar/Desactivar (Toggle)
-_UIS.InputBegan:Connect(function(_input, _gameProcessed)
-	if _gameProcessed then return end -- Ignora si estás escribiendo en el chat
-	if _input.KeyCode == TOGGLE_KEY then
-		ESP_ENABLED = not ESP_ENABLED
-	end
+-- Evento de clic en el botón
+toggleButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    
+    if espEnabled then
+        toggleButton.Text = "ESP: ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- Verde (Activado)
+    else
+        toggleButton.Text = "ESP: OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Rojo (Desactivado)
+    end
+    
+    updateESP()
 end)
