@@ -1,69 +1,93 @@
-using UnityEngine;
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-public class ESPManager : MonoBehaviour
-{
-    // Color de los cuadros del ESP
-    public Color colorEsp = Color.red; 
-    private Camera camaraPrincipal;
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-    void Start()
-    {
-        // Guardamos la referencia de la cámara principal
-        camaraPrincipal = Camera.main;
-    }
+local ESP = {}
 
-    void OnGUI()
-    {
-        // Buscamos a todos los enemigos en la escena
-        GameObject[] enemigos = GameObject.FindGameObjectsWithTag("Enemigo");
+local function createESP(player)
+    if player == LocalPlayer then
+        return
+    end
 
-        foreach (GameObject enemigo in enemigos)
-        {
-            // 1. Obtener la posición del enemigo en el espacio 3D
-            Vector3 posicion3D = enemigo.transform.position;
+    local function setup(character)
+        if ESP[player] then
+            ESP[player]:Destroy()
+        end
 
-            // 2. Convertir la posición 3D a coordenadas 2D de la pantalla
-            Vector3 posicionPantalla = camaraPrincipal.WorldToScreenPoint(posicion3D);
+        local folder = Instance.new("Folder")
+        folder.Name = "ESP_" .. player.Name
+        folder.Parent = Camera
 
-            // 3. Verificar si el enemigo está frente a la cámara (Z > 0)
-            if (posicionPantalla.z > 0)
-            {
-                // Invertir el eje Y porque las coordenadas de Unity GUI empiezan arriba a la izquierda
-                float x = posicionPantalla.x;
-                float y = Screen.height - posicionPantalla.y;
+        -- Caja alrededor del personaje
+        local highlight = Instance.new("Highlight")
+        highlight.Adornee = character
+        highlight.FillTransparency = 1
+        highlight.OutlineTransparency = 0
+        highlight.OutlineColor = Color3.fromRGB(255, 60, 60)
+        highlight.Parent = folder
 
-                // Calcular la distancia para escalar el tamaño del cuadro
-                float distancia = Vector3.Distance(camaraPrincipal.transform.position, posicion3D);
-                float ancho = 500 / distancia;
-                float alto = 1000 / distancia;
+        -- Nombre y distancia
+        local billboard = Instance.new("BillboardGui")
+        billboard.Adornee = character:FindFirstChild("Head")
+        billboard.Size = UDim2.fromOffset(200, 50)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = folder
 
-                // 4. Dibujar los elementos en pantalla
-                DibujarCuadroESP(x - ancho / 2, y - alto, ancho, alto, colorEsp);
-                DibujarTextoESP(x, y + 10, enemigo.name + " [" + Mathf.Round(distancia) + "m]", colorEsp);
-            }
-        }
-    }
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.fromScale(1, 1)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.TextStrokeTransparency = 0
+        label.TextScaled = true
+        label.Font = Enum.Font.SourceSansBold
+        label.Parent = billboard
 
-    // Función auxiliar para dibujar los rectángulos (Bordes)
-    void DibujarCuadroESP(float x, float y, float ancho, float alto, Color color)
-    {
-        Texture2D textura = Texture2D.whiteTexture;
-        GUI.color = color;
+        ESP[player] = folder
 
-        // Línea superior, inferior, izquierda y derecha
-        GUI.DrawTexture(new Rect(x, y, ancho, 2), textura);
-        GUI.DrawTexture(new Rect(x, y + alto, ancho, 2), textura);
-        GUI.DrawTexture(new Rect(x, y, 2, alto), textura);
-        GUI.DrawTexture(new Rect(x + ancho, y, 2, alto + 2), textura);
-    }
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
+            if not character.Parent or not player.Parent then
+                connection:Disconnect()
+                folder:Destroy()
+                ESP[player] = nil
+                return
+            end
 
-    // Función auxiliar para mostrar texto (Nombre y Distancia)
-    void DibujarTextoESP(float x, float y, string texto, Color color)
-    {
-        GUIStyle estilo = new GUIStyle();
-        estilo.normal.textColor = color;
-        estilo.alignment = TextAnchor.UpperCenter;
-        
-        GUI.Label(new Rect(x, y, 0, 0), texto, estilo);
-    }
-}
+            local root = character:FindFirstChild("HumanoidRootPart")
+            local myCharacter = LocalPlayer.Character
+            local myRoot = myCharacter and
+                myCharacter:FindFirstChild("HumanoidRootPart")
+
+            if root and myRoot then
+                local distance = (root.Position - myRoot.Position).Magnitude
+                label.Text = string.format(
+                    "%s\n[%d studs]",
+                    player.DisplayName,
+                    distance
+                )
+            end
+        end)
+    end
+
+    if player.Character then
+        setup(player.Character)
+    end
+
+    player.CharacterAdded:Connect(setup)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    createESP(player)
+end
+
+Players.PlayerAdded:Connect(createESP)
+
+Players.PlayerRemoving:Connect(function(player)
+    if ESP[player] then
+        ESP[player]:Destroy()
+        ESP[player] = nil
+    end
+end)
